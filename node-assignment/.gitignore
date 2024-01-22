@@ -119,3 +119,6 @@ dist
 # IDE - Jetbrains
 .vscode/*
 /.vscode
+
+# prettierrc
+.prettierrc.json

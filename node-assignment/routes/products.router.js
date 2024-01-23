@@ -13,8 +13,7 @@ const createdProductSchema = joi.object({
 
 // 상품 목록 조회
 router.get('/products', async (req, res, next) => {
-    const products = await Product.find().exec();
-
+    const products = (await Product.find().exec()).sort((a,b) => { return a.createAt < b.createAt ? 1 : -1});
     return res.status(200).json({ products });
 });
 

@@ -136,12 +136,12 @@ router.patch('/product/:productId', async (req, res, next) => {
 // 상품 삭제
 router.delete('/product/:productId', async (req, res, next) => {
     try {
-        const { productId } = req.params;
-        const { password } = req.body;
-
-        if (!productId || !password) {
+        if (!req.body || !req.params) {
             return res.status(400).json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
         }
+
+        const { productId } = req.params;
+        const { password } = req.body;
 
         const product = await Product.findById(productId);
 

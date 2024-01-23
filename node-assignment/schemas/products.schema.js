@@ -19,7 +19,8 @@ const ProductSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        required: false,
+        enum: ['FOR_SALE', 'SOLD_OUT'],
+        default: 'FOR_SALE',
     },
     createAt: {
         type: Date,

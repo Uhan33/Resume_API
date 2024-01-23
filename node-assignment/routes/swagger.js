@@ -31,6 +31,33 @@ const specs = swaggereJsdoc(options);
  *      responses:
  *       200:
  *        description: 상품 조회 성공
+ *  /api/products/for_sale:
+ *    get:
+ *      tags:
+ *      - products
+ *      summary: 판매 중인 상품 조회
+ *      description: 판매 중인 상품 조회
+ *      produces:
+ *      - application/json
+ *      responses:
+ *       200:
+ *        description: 상품 조회 성공
+ *  /api/products/author:
+ *    get:
+ *      tags:
+ *      - products
+ *      summary: 특정 판매자의 상품 조회
+ *      description: 특정 판매자의 상품 조회
+ *      parameters:
+ *         - in: query
+ *           name: name
+ *           required: true
+ *           description: 판매자 이름
+ *      produces:
+ *      - application/json
+ *      responses:
+ *       200:
+ *        description: 상품 조회 성공
  *  /api/product:
  *    post:
  *     tags:
@@ -106,6 +133,8 @@ const specs = swaggereJsdoc(options);
  *                        example: (FOR_SALE / SOLD_OUT)
  *                     createAt:
  *                        example: new Date()
+ *         404:
+ *          description: 상품 조회 실패(can't find the productID)
  *     patch:
  *        tags:
  *          - product

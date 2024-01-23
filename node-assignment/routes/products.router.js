@@ -13,8 +13,48 @@ const createdProductSchema = joi.object({
 
 // 상품 목록 조회
 router.get('/products', async (req, res, next) => {
-    const products = (await Product.find().exec()).sort((a,b) => { return a.createAt < b.createAt ? 1 : -1});
-    return res.status(200).json({ products });
+    try {
+        const products = (
+            await Product.find().select('_id title content author status createAt')
+        ).sort((a, b) => {
+            return a.createAt < b.createAt ? 1 : -1;
+        });
+        return res.status(200).json({ products });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 판매 중인 상품 목록 조회
+router.get('/products/for_sale', async (req, res, next) => {
+    try {
+        const products = (await Product.find().select('_id title content author status createAt'))
+            .filter((e) => e.status === 'FOR_SALE')
+            .sort((a, b) => {
+                return a.createAt < b.createAt ? 1 : -1;
+            });
+
+        return res.status(200).json({ products });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 특정 판매자의 판매 목록 조회
+router.get('/products/author', async (req, res, next) => {
+    try {
+        const author = req.query.name;
+
+        const products = (await Product.find().select('_id title content author status createAt'))
+            .filter((e) => e.author === author)
+            .sort((a, b) => {
+                return a.createAt < b.createAt ? 1 : -1;
+            });
+
+        res.status(200).json({ products });
+    } catch (error) {
+        next(error);
+    }
 });
 
 // 상품 등록
@@ -29,7 +69,6 @@ router.post('/product', async (req, res, next) => {
             content,
             author,
             password,
-            status: 'FOR_SALE',
             createAt: new Date(),
         });
 
@@ -43,30 +82,32 @@ router.post('/product', async (req, res, next) => {
 
 // 상품 상세 조회
 router.get('/product/:productId', async (req, res, next) => {
-    const { productId } = req.params;
+    try {
+        const { productId } = req.params;
+        const product = await Product.findById(productId).select(
+            '_id title content author status createAt'
+        );
 
-    const product = await Product.findById(productId).exec();
-    if (!product) {
-        return res.status(404).json({ errorMassage: '존재하지 않는 상품 입니다.' });
+        return res.status(200).json({ product });
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(404).json({ errorMassage: '존재하지 않는 상품 입니다.' });
+        } else next(error);
     }
-
-    return res.status(200).json({ product });
 });
 
 // 상품 정보 수정
 router.patch('/product/:productId', async (req, res, next) => {
-    const { productId } = req.params;
-    const { title, content, password, status } = req.body;
+    try {
+        if (!req.body || !req.params) {
+            return res.status(400).json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
+        }
 
-    if (!productId || !password) {
-        return res.status(400).json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
-    }
+        const { productId } = req.params;
+        const { title, content, password, status } = req.body;
 
-    const product = await Product.findById(productId).exec();
+        const product = await Product.findById(productId);
 
-    if (!product) {
-        return res.status(404).json({ errorMassage: '상품 조회에 실패하였습니다.' });
-    } else {
         if (product.password !== password) {
             return res.status(401).json({ errorMassage: '상품을 수정할 권한이 없습니다.' });
         }
@@ -83,9 +124,13 @@ router.patch('/product/:productId', async (req, res, next) => {
                 .status(400)
                 .json({ errorMassage: '상품의 상태는 FOR_SALE 또는 SOLD_OUT 이어야 합니다.' });
         }
-    }
 
-    return res.status(200).json({ Message: '상품 정보를 수정하였습니다.' });
+        return res.status(200).json({ Message: '상품 정보를 수정하였습니다.' });
+    } catch (error) {
+        if (error.name === 'CastError') {
+            return res.status(404).json({ errorMassage: '상품 조회에 실패하였습니다.' });
+        } else next(error);
+    }
 });
 
 // 상품 삭제
@@ -98,11 +143,7 @@ router.delete('/product/:productId', async (req, res, next) => {
             return res.status(400).json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
         }
 
-        const product = await Product.findById(productId).exec();
-
-        if (!product) {
-            return res.status(404).json({ errorMassage: '상품 조회에 실패하였습니다.' });
-        }
+        const product = await Product.findById(productId);
 
         if (product.password !== password) {
             return res.status(401).json({ errorMassage: '상품을 삭제할 권한이 없습니다.' });
@@ -112,7 +153,9 @@ router.delete('/product/:productId', async (req, res, next) => {
 
         return res.status(200).json({ Massage: '상품이 삭제되었습니다.' });
     } catch (error) {
-        next(error);
+        if (error.name === 'CastError') {
+            return res.status(404).json({ errorMassage: '상품 조회에 실패하였습니다.' });
+        } else next(error);
     }
 });
 

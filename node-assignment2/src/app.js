@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = 3018;
+const PORT = 3001;
 
 app.use(logMiddleware);
 app.use(express.json());

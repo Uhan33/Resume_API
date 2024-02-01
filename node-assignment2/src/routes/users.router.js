@@ -68,7 +68,25 @@ router.post('/sign-in', async (req, res, next) => {
   if (!(await bcrypt.compare(password, user.password)))
     return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
 
-  const token = jwt.sign({ userId: user.userId }, process.env.SESSION_SECRET_KEY, { expiresIn: '12h' });
+  const refreshToken = await prisma.tokenStorage.findFirst({
+    where: { userId: +user.userId },
+  });
+
+  if (!refreshToken) {
+    await prisma.tokenStorage.create({
+      data: {
+        refreshToken: jwt.sign({ userId: user.userId }, process.env.REFRESH_TOKEN_SECRET_KEY),
+        userId: +user.userId,
+        ip: req.ip,
+      },
+    });
+
+    const firstToken = jwt.sign({ userId: user.userId }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '1h' });
+    res.cookie('authorization', `Bearer ${firstToken}`);
+    return res.status(200).json({ message: '로그인에 성공하였습니다.' });
+  }
+
+  const token = jwt.sign({ userId: refreshToken.userId }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '12h' });
 
   res.cookie('authorization', `Bearer ${token}`);
   return res.status(200).json({ message: '로그인에 성공하였습니다.' });

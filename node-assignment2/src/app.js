@@ -4,8 +4,7 @@ import UsersRouter from './routes/users.router.js';
 import ResumesRouter from './routes/resumes.router.js';
 import logMiddleware from './middlewares/log.middleware.js';
 import errorHandlingMiddleware from './middlewares/error-handling.middleware.js';
-// import expressSession from 'express-session';
-import expressMySQLSession from 'express-mysql-session';
+import { swaggerUi, specs } from './routes/swagger.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,7 +16,9 @@ app.use(logMiddleware);
 app.use(express.json());
 app.use(cookieParser());
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/api', [UsersRouter, ResumesRouter]);
+
 app.use(errorHandlingMiddleware);
 app.listen(PORT, () => {
   console.log(PORT, '포트로 서버가 열렸어요!');

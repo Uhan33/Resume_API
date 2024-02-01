@@ -11,7 +11,7 @@ export default async function (req, res, next) {
     if (tokenType !== "Bearer")
       throw new Error("토큰 타입이 Bearer 형식이 아닙니다.");
 
-    const decodedToken = jwt.verify(token, process.env.SESSION_SECRET_KEY);
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
     const userId = decodedToken.userId;
     if(!userId) throw new Error('로그인이 필요합니다.');
 

@@ -20,11 +20,23 @@ export default async function (req, res, next) {
     });
     if (!user) throw new Error("토큰 사용자가 존재하지 않습니다.");
 
-    req.user = user;
+    if(new Date().getTime() >= (decodedToken.exp-300)*1000) {
+      const refreshToken = await prisma.tokenStorage.findFirst({
+        where: {userId: +userId}
+      });
+      if(refreshToken) {
+        const token = jwt.sign({ userId: refreshToken.userId }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '1h' });
+        res.cookie('authorization', `Bearer ${token}`);
+        return res.status(401).json({message: "토큰이 만료되어 재발급하였습니다. 재시도 바랍니다."});
+      }
+    }
+    const email = user.email;
+    req.user = {userId, email};
     next();
   } catch (error) {
-    if (error.name === "TokenExpiredError")
+    if (error.name === "TokenExpiredError") {
       return res.status(401).json({ message: "토큰이 만료되었습니다." });
+    }
     if (error.name === "JsonWebTokenError")
       return res.status(401).json({ message: "토큰이 조작되었습니다." });
     return res.status(400).json({ message: error.message });

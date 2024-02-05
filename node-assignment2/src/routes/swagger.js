@@ -51,7 +51,7 @@ const specs = swaggereJsdoc(options);
  *       409:
  *        description: 이미 존재하는 이메일입니다.
  *       400:
- *        description: 비밀번호는 최소 6자 이상이어야합니다.
+ *        description: 요청 값 올바르지 않음.
  *  /api/sign-in:
  *    post:
  *      tags:
@@ -140,6 +140,12 @@ const specs = swaggereJsdoc(options);
  *      summary: 모든 이력서 조회(관리자 전용)
  *      description: 모든 이력서 조회(관리자 전용)
  *      parameters:
+ *        - name: orderKey
+ *          in: query
+ *          description: userId or status or createAt (default = createdAt)
+ *          required: false
+ *          schema:
+ *            type: string
  *        - name: orderValue
  *          in: query
  *          description: ASC or DESC 공백은 DESC 처리

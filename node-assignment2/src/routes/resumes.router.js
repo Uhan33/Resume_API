@@ -4,19 +4,6 @@ import { prisma } from '../utils/prisma/index.js';
 
 const router = express.Router();
 
-async function checkUser(userId, resumeId) {
-  const userResume = await prisma.resumes.findFirst({
-    where: { resumeId: resumeId },
-  });
-
-  if (!userResume) return '404';
-
-  if (userId.email !== 'superadmin') {
-    if (userResume.userId !== userId) return '401';
-  }
-  return 0;
-}
-
 router.post('/make-resume', authMiddleware, async (req, res, next) => {
   try {
     const { title, content } = req.body;
@@ -38,9 +25,13 @@ router.post('/make-resume', authMiddleware, async (req, res, next) => {
 
 router.get('/resumes', authMiddleware, async (req, res, next) => {
   const { email } = req.user;
+  console.log(email);
+  let orderKey = req.query.orderKey ?? 'createdAt';
   let orderValue = req.query.orderValue;
 
   if (email !== 'superadmin') return res.status(401).json({ message: '관리자 전용 접근 구역입니다.' });
+
+  if (orderKey !== 'userId' && orderKey !== 'status') orderKey = 'createdAt';
 
   if (!orderValue) orderValue = 'desc';
   else orderValue.toUpperCase() !== 'ASC' ? (orderValue = 'desc') : (orderValue = 'asc');
@@ -62,9 +53,15 @@ router.get('/resumes', authMiddleware, async (req, res, next) => {
       createdAt: true,
     },
     orderBy: {
-      createdAt: orderValue,
+      [orderKey]: orderValue,
     },
   });
+
+  //   JSON 형태를 동일하게 바꿔주는 작업.
+  // resumes.forEach(resume => {
+  //   resume.name = resume.user.userInfos.name;
+  //   delete resume.user;
+  // })
 
   return res.status(200).json({ data: resumes });
 });
@@ -111,7 +108,7 @@ router.patch('/resumes/:resumeId', authMiddleware, async (req, res, next) => {
     const stat = ['APPLY', 'DROP', 'PASS', 'INTERVIEW1', 'INTERVIEW2', 'FINAL_PASS'];
     let check = false;
     const { resumeId } = req.params;
-    const { userId, email} = req.user;
+    const { userId, email } = req.user;
     const updatedResume = req.body;
 
     const userResume = await prisma.resumes.findFirst({

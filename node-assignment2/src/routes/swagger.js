@@ -245,6 +245,30 @@ const specs = swaggereJsdoc(options);
  *        description: 이력서 조회에 실패하였습니다.
  *       401:
  *        description: 본인의 이력서만 삭제할 수 있습니다.
+ *  /api/refresh:
+ *    post:
+ *      tags:
+ *      - token
+ *      summary: AccessToken 재발급
+ *      description: AccessToken 재발급
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                refreshToken:
+ *                  type: string
+ *      produces:
+ *      - application/json
+ *      responses:
+ *       201:
+ *        description: AccessToken 재발급 성공
+ *       400:
+ *        description: refreshToken 값 올바르지 않음
+ *       401:
+ *        description: refreshToken이 유저가 발급받은 토큰과 일치하지 않음
  */
 
 export { swaggerUi, specs };

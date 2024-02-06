@@ -119,8 +119,8 @@ router.post('/sign-in', async (req, res, next) => {
       where: { clientId },
     });
 
-    if(!user) {
-        return res.status(400).json({message: '로그인 정보가 맞지 않습니다.'});
+    if (!user) {
+      return res.status(400).json({ message: '로그인 정보가 맞지 않습니다.' });
     }
   } else {
     if (!email) {
@@ -148,7 +148,7 @@ router.post('/sign-in', async (req, res, next) => {
   if (!refreshToken) {
     await prisma.tokenStorage.create({
       data: {
-        refreshToken: jwt.sign({ userId: user.userId }, process.env.REFRESH_TOKEN_SECRET_KEY, {expiresIn: '7d'}),
+        refreshToken: jwt.sign({ userId: user.userId }, process.env.REFRESH_TOKEN_SECRET_KEY, { expiresIn: '7d' }),
         userId: +user.userId,
         ip: req.ip,
       },
@@ -157,21 +157,22 @@ router.post('/sign-in', async (req, res, next) => {
 
   try {
     const decodedRefreshToken = jwt.verify(refreshToken.refreshToken, process.env.REFRESH_TOKEN_SECRET_KEY);
-  } catch(error) {
-    if(error.name === "TokenExpiredError") {
-        await prisma.tokenStorage.update({
-            where: {userId: +user.userId},
-            data: {
-                refreshToken: jwt.sign({ userId: user.userId }, process.env.REFRESH_TOKEN_SECRET_KEY, {expiresIn: '7d'})
-            }
-        });
-        console.log("refreshToken 재발급 완료.");
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      const decodedRefreshToken = await prisma.tokenStorage.update({
+        where: { userId: +user.userId },
+        data: {
+          refreshToken: jwt.sign({ userId: user.userId }, process.env.REFRESH_TOKEN_SECRET_KEY, { expiresIn: '7d' }),
+        },
+      });
+      console.log('refreshToken 재발급 완료.');
     }
   }
 
   const token = jwt.sign({ userId: user.userId }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '12h' });
 
   res.cookie('authorization', `Bearer ${token}`);
+  res.cookie('refreshToken', `Brearer ${token}`);
   return res.status(200).json({ message: '로그인에 성공하였습니다.' });
 });
 
@@ -237,6 +238,32 @@ router.patch('/users', authMiddleware, async (req, res, next) => {
   });
 
   return res.status(200).json({ message: '사용자 정보 변경에 성공하였습니다.' });
+});
+
+router.post('/refresh', async (req, res, next) => {
+  const { refreshToken } = req.body;
+  const decodedToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET_KEY);
+
+  if (!decodedToken.userId) return res.status(400).json({ message: '토큰 정보가 올바르지 않습니다.' });
+
+  const tokenStorage = await prisma.tokenStorage.findFirst({
+    where: {userId: decodedToken.userId}
+  });
+  if(tokenStorage.refreshToken !== refreshToken)
+    return res.status(401).json({message: "발급받은 refreshToken과 일치하지 않습니다."});
+
+  const user = await prisma.users.findFirst({
+    where: {
+      userId: +decodedToken.userId,
+    },
+  });
+
+  if (!user) return res.status(400).json({ message: '유저 정보가 없습니다.' });
+
+  const token = jwt.sign({ userId: user.userId }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '12h' });
+
+  res.cookie('authorization', `Bearer ${token}`);
+  return res.status(200).json({ message: '토큰 재발급 완료!' });
 });
 
 export default router;
